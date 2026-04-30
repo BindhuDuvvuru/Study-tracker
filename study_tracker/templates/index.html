@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Study Tracker{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ====== REMINDER BANNERS (upcoming / overdue exams) ====== -->
+{% if overdue %}
+  <div class="reminder-banner">
+    🚨 <strong>Overdue:</strong>
+    {{ overdue | map(attribute='name') | join(', ') }} —
+    exam date has passed! Update your progress or remove these subjects.
+  </div>
+{% endif %}
+
+{% if upcoming %}
+  <div class="reminder-banner" style="border-color:rgba(245,158,11,0.3);background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(249,115,22,0.08))">
+    ⚠️ <strong>Exam soon!</strong>
+    {% for s in upcoming %}
+      <strong>{{ s.name }}</strong> in {{ s.days_left }} day{{ 's' if s.days_left != 1 }}.&nbsp;
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- ====== STAT CARDS ====== -->
+<div class="stats-grid">
+
+  <div class="stat-card indigo">
+    <div class="stat-icon">📚</div>
+    <div class="stat-value">{{ total_subjects }}</div>
+    <div class="stat-label">Total Subjects</div>
+  </div>
+
+  <div class="stat-card green">
+    <div class="stat-icon">📈</div>
+    <div class="stat-value">{{ avg_progress }}%</div>
+    <div class="stat-label">Avg. Progress</div>
+  </div>
+
+  <div class="stat-card amber">
+    <div class="stat-icon">⏰</div>
+    <div class="stat-value">{{ upcoming | length }}</div>
+    <div class="stat-label">Exams This Week</div>
+  </div>
+
+  <div class="stat-card red">
+    <div class="stat-icon">❗</div>
+    <div class="stat-value">{{ overdue | length }}</div>
+    <div class="stat-label">Overdue Subjects</div>
+  </div>
+
+</div>
+
+<!-- ====== MAIN TABLE ====== -->
+{% if subjects %}
+
+  <!-- Overall progress bar -->
+  <div class="card mb-24">
+    <div class="card-header">
+      <span>📊</span>
+      <h3>Overall Study Progress</h3>
+    </div>
+    <div class="card-body">
+      <div class="progress-label">
+        <span>All Subjects Combined</span>
+        <span class="font-mono">{{ avg_progress }}%</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill
+          {% if avg_progress >= 70 %}success{% elif avg_progress >= 40 %}warning{% else %}danger{% endif %}"
+          style="width: {{ avg_progress }}%">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subject list card -->
+  <div class="card">
+    <div class="card-header flex-between">
+      <div class="flex-center gap-8">
+        <span>📋</span>
+        <h3>All Subjects</h3>
+      </div>
+      <a href="{{ url_for('subjects') }}" class="btn btn-primary btn-sm">+ Add Subject</a>
+    </div>
+
+    <div class="table-wrap" style="border:none; border-radius:0 0 12px 12px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Difficulty</th>
+            <th>Exam Date</th>
+            <th>Days Left</th>
+            <th>Progress</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in subjects %}
+          <tr>
+            <!-- Subject Name -->
+            <td><strong>{{ s.name }}</strong></td>
+
+            <!-- Difficulty Badge -->
+            <td>
+              <span class="badge badge-{{ s.difficulty }}">{{ s.difficulty }}</span>
+            </td>
+
+            <!-- Exam Date -->
+            <td class="font-mono text-sm">{{ s.exam_date }}</td>
+
+            <!-- Days Left with color coding -->
+            <td>
+              {% if s.days_left < 0 %}
+                <span class="days-badge past">Passed</span>
+              {% elif s.days_left <= 3 %}
+                <span class="days-badge urgent">🔴 {{ s.days_left }}d</span>
+              {% elif s.days_left <= 7 %}
+                <span class="days-badge soon">🟡 {{ s.days_left }}d</span>
+              {% else %}
+                <span class="days-badge ok">🟢 {{ s.days_left }}d</span>
+              {% endif %}
+            </td>
+
+            <!-- Progress Bar -->
+            <td style="min-width:160px;">
+              <div class="progress-label">
+                <span></span>
+                <span class="font-mono">{{ s.progress }}%</span>
+              </div>
+              <div class="progress-bar-wrap">
+                <div class="progress-bar-fill
+                  {% if s.progress >= 70 %}success{% elif s.progress >= 40 %}warning{% else %}danger{% endif %}"
+                  style="width: {{ s.progress }}%">
+                </div>
+              </div>
+            </td>
+
+            <!-- Priority score (lower = higher priority) -->
+            <td>
+              {% if s.priority < 3 %}
+                <span class="badge badge-high">🔥 High</span>
+              {% elif s.priority < 8 %}
+                <span class="badge badge-medium">⚡ Med</span>
+              {% else %}
+                <span class="badge badge-easy">✅ Low</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% else %}
+  <!-- No subjects yet — show empty state -->
+  <div class="card">
+    <div class="empty-state">
+      <div class="empty-icon">🎓</div>
+      <h4>No subjects yet</h4>
+      <p>Start by adding your subjects to track your exam preparation.</p>
+      <br/>
+      <a href="{{ url_for('subjects') }}" class="btn btn-primary">+ Add Your First Subject</a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

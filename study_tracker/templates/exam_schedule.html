@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Exam Schedule — Study Tracker{% endblock %}
+{% block page_title %}Exam Preparation Schedule{% endblock %}
+
+{% block content %}
+
+{% if schedule %}
+
+  <!-- Quick reminder banners -->
+  {% for s in schedule %}
+    {% if s.days_left == 0 %}
+      <div class="reminder-banner">
+        🚨 <strong>TODAY!</strong> Your <strong>{{ s.name }}</strong> exam is today. Good luck! 🍀
+      </div>
+    {% elif s.days_left == 1 %}
+      <div class="reminder-banner">
+        ⚠️ <strong>TOMORROW:</strong> {{ s.name }} exam is tomorrow! Final review time.
+      </div>
+    {% elif 0 < s.days_left <= 3 %}
+      <div class="reminder-banner">
+        ⏰ <strong>{{ s.days_left }} days left</strong> for {{ s.name }}. Focus intensely!
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <!-- Exam Schedule Cards -->
+  <div style="display:grid; gap:16px;">
+    {% for s in schedule %}
+    <div class="card">
+      <div class="card-body" style="padding:20px 24px;">
+        <div class="flex-between" style="flex-wrap:wrap; gap:16px;">
+
+          <!-- Left: Subject Info -->
+          <div style="flex:1; min-width:200px;">
+            <div class="flex-center gap-12 mb-16">
+              <div>
+                <h3 style="font-size:18px; font-weight:700; margin-bottom:4px;">
+                  {{ s.name }}
+                </h3>
+                <div class="flex-center gap-8">
+                  <span class="badge badge-{{ s.difficulty }}">{{ s.difficulty }}</span>
+
+                  <!-- Urgency badge -->
+                  {% if s.days_left < 0 %}
+                    <span class="badge badge-past">📅 Exam Passed</span>
+                  {% elif s.days_left == 0 %}
+                    <span class="badge badge-high">🔴 TODAY</span>
+                  {% elif s.urgency == 'high' %}
+                    <span class="badge badge-high">🔥 High Urgency</span>
+                  {% elif s.urgency == 'medium' %}
+                    <span class="badge badge-medium">⚡ Medium Urgency</span>
+                  {% else %}
+                    <span class="badge badge-easy">✅ On Track</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-label">
+              <span class="text-sm">Study Progress</span>
+              <span class="font-mono">{{ s.progress }}%</span>
+            </div>
+            <div class="progress-bar-wrap" style="margin-bottom:4px;">
+              <div class="progress-bar-fill
+                {% if s.progress >= 70 %}success{% elif s.progress >= 40 %}warning{% else %}danger{% endif %}"
+                style="width:{{ s.progress }}%">
+              </div>
+            </div>
+            <div class="text-muted text-sm">{{ 100 - s.progress }}% remaining to study</div>
+          </div>
+
+          <!-- Right: Stats boxes -->
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; min-width:280px;">
+
+            <!-- Exam Date -->
+            <div style="background:var(--surface2);border:1px solid var(--border);
+                        border-radius:var(--radius-sm);padding:14px;text-align:center;">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;
+                          color:var(--text-muted);font-weight:600;margin-bottom:6px;">Exam Date</div>
+              <div class="font-mono" style="font-size:13px;font-weight:700;">{{ s.exam_date }}</div>
+            </div>
+
+            <!-- Days Left -->
+            <div style="background:var(--surface2);border:1px solid var(--border);
+                        border-radius:var(--radius-sm);padding:14px;text-align:center;
+                        border-color:{% if s.days_left < 0 %}var(--text-muted)
+                          {% elif s.days_left <= 3 %}var(--danger)
+                          {% elif s.days_left <= 7 %}var(--warning)
+                          {% else %}var(--success){% endif %}">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;
+                          color:var(--text-muted);font-weight:600;margin-bottom:6px;">Days Left</div>
+              <div class="font-mono" style="font-size:22px;font-weight:700;
+                color:{% if s.days_left < 0 %}var(--text-muted)
+                       {% elif s.days_left <= 3 %}var(--danger)
+                       {% elif s.days_left <= 7 %}var(--warning)
+                       {% else %}var(--success){% endif %}">
+                {% if s.days_left < 0 %}—{% else %}{{ s.days_left }}{% endif %}
+              </div>
+            </div>
+
+            <!-- Suggested Daily Hours -->
+            <div style="background:linear-gradient(135deg,rgba(79,70,229,0.08),rgba(129,140,248,0.08));
+                        border:1px solid var(--primary);border-opacity:0.3;
+                        border-radius:var(--radius-sm);padding:14px;text-align:center;">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;
+                          color:var(--text-muted);font-weight:600;margin-bottom:6px;">Daily Study</div>
+              <div class="font-mono" style="font-size:22px;font-weight:700;color:var(--primary);">
+                {% if s.days_left <= 0 %}
+                  —
+                {% else %}
+                  {{ s.suggested_daily }}h
+                {% endif %}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Study Tips based on urgency -->
+        {% if s.days_left > 0 %}
+        <div style="margin-top:16px;padding:12px 16px;
+                    background:var(--surface2);border-radius:var(--radius-sm);
+                    border-left:3px solid
+                    {% if s.urgency == 'high' %}var(--danger)
+                    {% elif s.urgency == 'medium' %}var(--warning)
+                    {% else %}var(--success){% endif %}">
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">
+            💡 Study Tip:
+          </div>
+          <div class="text-muted text-sm">
+            {% if s.urgency == 'high' %}
+              🔥 <strong>Critical zone!</strong> Focus exclusively on {{ s.name }}.
+              Do {{ s.suggested_daily }}h of focused revision daily. Prioritize past papers.
+            {% elif s.urgency == 'medium' %}
+              ⚡ <strong>Build momentum.</strong> Dedicate {{ s.suggested_daily }}h to {{ s.name }} daily.
+              Review key concepts and create summary notes.
+            {% else %}
+              ✅ <strong>Good pace.</strong> Study {{ s.suggested_daily }}h per day to stay on track.
+              This is a great time to master difficult topics without pressure.
+            {% endif %}
+          </div>
+        </div>
+        {% elif s.days_left < 0 %}
+        <div style="margin-top:16px;padding:12px 16px;
+                    background:var(--surface2);border-radius:var(--radius-sm);
+                    border-left:3px solid var(--text-muted);">
+          <div class="text-muted text-sm">
+            📅 This exam date has passed. Update the subject or remove it from your tracker.
+          </div>
+        </div>
+        {% endif %}
+
+        {% if s.notes %}
+        <div style="margin-top:12px;padding:12px 16px;
+                    background:var(--surface2);border-radius:var(--radius-sm);">
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);
+                      text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">📝 Notes</div>
+          <div class="text-sm">{{ s.notes }}</div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="card">
+    <div class="empty-state">
+      <div class="empty-icon">🎯</div>
+      <h4>No exam schedule yet</h4>
+      <p>Add subjects with exam dates to see your personalized preparation schedule.</p>
+      <br/>
+      <a href="{{ url_for('subjects') }}" class="btn btn-primary">+ Add Subjects</a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Study Tracker{% endblock %}</title>
+  <!-- Our custom stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+
+<body id="body">
+
+  <div class="layout">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="sidebar">
+      <!-- Logo / Brand -->
+      <div class="sidebar-logo">
+        <div class="logo-icon">📚</div>
+        <h2>StudyTrack</h2>
+        <p>Your learning companion</p>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+
+        <a href="{{ url_for('dashboard') }}"
+           class="{{ 'active' if request.endpoint == 'dashboard' else '' }}">
+          <span class="nav-icon">🏠</span>
+          <span>Dashboard</span>
+        </a>
+
+        <a href="{{ url_for('subjects') }}"
+           class="{{ 'active' if request.endpoint == 'subjects' else '' }}">
+          <span class="nav-icon">📖</span>
+          <span>Subjects</span>
+        </a>
+
+        <div class="nav-section-label">Planning</div>
+
+        <a href="{{ url_for('timetable') }}"
+           class="{{ 'active' if request.endpoint == 'timetable' else '' }}">
+          <span class="nav-icon">📅</span>
+          <span>Timetable</span>
+        </a>
+
+        <a href="{{ url_for('exam_schedule') }}"
+           class="{{ 'active' if request.endpoint == 'exam_schedule' else '' }}">
+          <span class="nav-icon">🎯</span>
+          <span>Exam Schedule</span>
+        </a>
+
+        <div class="nav-section-label">Progress</div>
+
+        <a href="{{ url_for('progress') }}"
+           class="{{ 'active' if request.endpoint == 'progress' else '' }}">
+          <span class="nav-icon">📊</span>
+          <span>Progress</span>
+        </a>
+      </nav>
+
+      <!-- Dark Mode Toggle -->
+      <div class="sidebar-footer">
+        <label class="dark-toggle">
+          <span class="toggle-switch">
+            <input type="checkbox" id="darkToggle" onchange="toggleDark(this)"/>
+            <span class="toggle-slider"></span>
+          </span>
+          <span>Dark mode</span>
+        </label>
+      </div>
+    </aside>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <div class="main-content">
+
+      <!-- Top Bar -->
+      <div class="topbar">
+        <h1 class="topbar-title">{% block page_title %}Dashboard{% endblock %}</h1>
+        <div class="topbar-date" id="currentDate"></div>
+      </div>
+
+      <!-- Page Body -->
+      <div class="page-content">
+
+        <!-- Flash messages (success/error notifications) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="alerts">
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                  {% if category == 'success' %}✅{% elif category == 'error' %}❌{% else %}ℹ️{% endif %}
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <!-- Each page fills this block -->
+        {% block content %}{% endblock %}
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== JAVASCRIPT ===================== -->
+  <script>
+    // ---- Set current date in topbar ----
+    const dateEl = document.getElementById('currentDate');
+    if (dateEl) {
+      const now = new Date();
+      dateEl.textContent = now.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+    }
+
+    // ---- Dark Mode logic ----
+    const toggle = document.getElementById('darkToggle');
+
+    function applyDark(isDark) {
+      document.getElementById('body').classList.toggle('dark-mode', isDark);
+      if (toggle) toggle.checked = isDark;
+    }
+
+    function toggleDark(cb) {
+      localStorage.setItem('darkMode', cb.checked ? '1' : '0');
+      applyDark(cb.checked);
+    }
+
+    // Apply stored preference on load
+    applyDark(localStorage.getItem('darkMode') === '1');
+
+    // ---- Modal helpers ----
+    function openModal(id) {
+      document.getElementById(id).classList.add('open');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+
+    // Close modal when clicking outside the box
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('open');
+      });
+    });
+
+    // ---- Progress range input live display ----
+    document.querySelectorAll('input[type="range"]').forEach(input => {
+      const display = document.getElementById(input.id + '_display');
+      if (display) {
+        display.textContent = input.value + '%';
+        input.addEventListener('input', () => {
+          display.textContent = input.value + '%';
+        });
+      }
+    });
+  </script>
+
+  {% block scripts %}{% endblock %}
+
+</body>
+</html>

@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block title %}Subjects — Study Tracker{% endblock %}
+{% block page_title %}Subject Management{% endblock %}
+
+{% block content %}
+
+<!-- ====== ADD SUBJECT FORM ====== -->
+<div class="card mb-24">
+  <div class="card-header">
+    <span>➕</span>
+    <h3>Add New Subject</h3>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('subjects') }}">
+      <input type="hidden" name="action" value="add"/>
+
+      <div class="form-row">
+        <!-- Subject Name -->
+        <div class="form-group">
+          <label class="form-label">Subject Name *</label>
+          <input type="text" name="name" class="form-control"
+                 placeholder="e.g. Mathematics, Physics..." required maxlength="100"/>
+        </div>
+
+        <!-- Difficulty -->
+        <div class="form-group">
+          <label class="form-label">Difficulty Level *</label>
+          <select name="difficulty" class="form-control" required>
+            <option value="easy">🟢 Easy</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="hard">🔴 Hard</option>
+          </select>
+        </div>
+
+        <!-- Exam Date -->
+        <div class="form-group">
+          <label class="form-label">Exam Date *</label>
+          <input type="date" name="exam_date" class="form-control" required
+                 min="{{ '' }}"/>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <textarea name="notes" class="form-control"
+                  placeholder="Topics to focus on, reference books, important chapters..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary">➕ Add Subject</button>
+    </form>
+  </div>
+</div>
+
+<!-- ====== SUBJECTS TABLE ====== -->
+<div class="card">
+  <div class="card-header flex-between">
+    <div class="flex-center gap-8">
+      <span>📋</span>
+      <h3>All Subjects ({{ subjects | length }})</h3>
+    </div>
+  </div>
+
+  {% if subjects %}
+    <div class="table-wrap" style="border:none; border-radius:0 0 12px 12px;">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Subject</th>
+            <th>Difficulty</th>
+            <th>Exam Date</th>
+            <th>Days Left</th>
+            <th>Progress</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in subjects %}
+          <tr>
+            <td class="font-mono text-muted">{{ loop.index }}</td>
+
+            <td><strong>{{ s.name }}</strong></td>
+
+            <td>
+              <span class="badge badge-{{ s.difficulty }}">{{ s.difficulty }}</span>
+            </td>
+
+            <td class="font-mono text-sm">{{ s.exam_date }}</td>
+
+            <td>
+              {% if s.days_left < 0 %}
+                <span class="days-badge past">Passed</span>
+              {% elif s.days_left <= 3 %}
+                <span class="days-badge urgent">🔴 {{ s.days_left }}d</span>
+              {% elif s.days_left <= 7 %}
+                <span class="days-badge soon">🟡 {{ s.days_left }}d</span>
+              {% else %}
+                <span class="days-badge ok">🟢 {{ s.days_left }}d</span>
+              {% endif %}
+            </td>
+
+            <td style="min-width:120px;">
+              <div class="progress-label">
+                <span></span>
+                <span>{{ s.progress }}%</span>
+              </div>
+              <div class="progress-bar-wrap">
+                <div class="progress-bar-fill
+                  {% if s.progress >= 70 %}success{% elif s.progress >= 40 %}warning{% else %}danger{% endif %}"
+                  style="width:{{ s.progress }}%"></div>
+              </div>
+            </td>
+
+            <td>
+              {% if s.notes %}
+                <span class="text-muted text-sm"
+                      title="{{ s.notes }}"
+                      style="max-width:140px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                  📝 {{ s.notes[:50] }}{% if s.notes|length > 50 %}…{% endif %}
+                </span>
+              {% else %}
+                <span class="text-muted text-sm">—</span>
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="flex-center gap-8">
+                <!-- Edit Button → opens modal -->
+                <button class="btn btn-secondary btn-xs"
+                        onclick="openEditModal(
+                          {{ s.id }},
+                          '{{ s.name | replace("'", "\\'") }}',
+                          '{{ s.difficulty }}',
+                          '{{ s.exam_date }}',
+                          {{ s.progress }},
+                          '{{ s.notes | replace("'", "\\'") | replace("\n", "\\n") }}'
+                        )">✏️ Edit</button>
+
+                <!-- Delete Form -->
+                <form method="POST" action="{{ url_for('subjects') }}"
+                      onsubmit="return confirm('Delete {{ s.name }}? This cannot be undone.')">
+                  <input type="hidden" name="action"     value="delete"/>
+                  <input type="hidden" name="subject_id" value="{{ s.id }}"/>
+                  <button type="submit" class="btn btn-danger btn-xs">🗑️</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📚</div>
+      <h4>No subjects added yet</h4>
+      <p>Use the form above to add your first subject.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ====== EDIT MODAL ====== -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Edit Subject</div>
+
+    <form method="POST" action="{{ url_for('subjects') }}">
+      <input type="hidden" name="action"     value="edit"/>
+      <input type="hidden" name="subject_id" id="edit_id"/>
+
+      <div class="form-group">
+        <label class="form-label">Subject Name *</label>
+        <input type="text" name="name" id="edit_name" class="form-control" required maxlength="100"/>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Difficulty *</label>
+          <select name="difficulty" id="edit_difficulty" class="form-control">
+            <option value="easy">🟢 Easy</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="hard">🔴 Hard</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Exam Date *</label>
+          <input type="date" name="exam_date" id="edit_exam_date" class="form-control" required/>
+        </div>
+      </div>
+
+      <!-- Progress Slider -->
+      <div class="form-group">
+        <label class="form-label">
+          Progress: <span id="edit_progress_display" class="font-mono" style="color:var(--primary)">0%</span>
+        </label>
+        <input type="range" name="progress" id="edit_progress"
+               min="0" max="100" value="0"
+               oninput="document.getElementById('edit_progress_display').textContent = this.value + '%'"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" id="edit_notes" class="form-control"
+                  placeholder="Topics, chapters, resources..."></textarea>
+      </div>
+
+      <div class="flex-center gap-12 mt-16">
+        <button type="submit" class="btn btn-success">💾 Save Changes</button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Populate the edit modal with the selected subject's data
+  function openEditModal(id, name, difficulty, examDate, progress, notes) {
+    document.getElementById('edit_id').value         = id;
+    document.getElementById('edit_name').value       = name;
+    document.getElementById('edit_exam_date').value  = examDate;
+    document.getElementById('edit_progress').value   = progress;
+    document.getElementById('edit_progress_display').textContent = progress + '%';
+    document.getElementById('edit_notes').value      = notes;
+
+    // Set correct difficulty option
+    const sel = document.getElementById('edit_difficulty');
+    for (let opt of sel.options) {
+      opt.selected = (opt.value === difficulty);
+    }
+
+    openModal('editModal');
+  }
+</script>
+{% endblock %}
